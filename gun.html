@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fighting & Shooting Multiplayer Game</title>
+  <style>
+    body {
+      margin: 0;
+      background: #5f5a5a;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      color: rgb(237, 176, 176);
+      font-family: Arial, sans-serif;
+    }
+    canvas {
+      background: #000000;
+      border: 3px solid white;
+    }
+    #score {
+      position: absolute;
+      top: 10px;
+      font-size: 20px;
+      text-align: center;
+      width: 100%;
+    }
+    .keys {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 15px;
+      font-weight: bold;
+    }
+    .player1 { left: 10px; text-align: left; color: #f44; }
+    .player2 { right: 10px; text-align: right; color: #0af; }
+  </style>
+</head>
+<body>
+  <div id="score">Blue: 0 | Red: 0</div>
+  <canvas id="game" width="800" height="400"></canvas>
+
+  <div class="keys player1">
+    <u><i>Player 1 keys:</i></u><br>
+    W = Up<br>S = Down<br>A = Left<br>D = Right<br>F = Shoot
+  </div>
+
+  <div class="keys player2">
+    <u><i>Player 2 keys:</i></u><br>
+    ↑ = Up<br>↓ = Down<br>← = Left<br>→ = Right<br>Enter = Shoot
+  </div>
+
+  <script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+
+    // Load images
+    const img1 = new Image();
+    img1.src = "player1.png"; // must be in the same folder
+    const img2 = new Image();
+    img2.src = "player2.png"; // must be in the same folder
+
+    const player1 = { x: 50, y: 300, w: 80, h: 80, bullets: [], score: 0 };
+    const player2 = { x: 710, y: 300, w: 80, h: 80, bullets: [], score: 0 };
+
+    const speed = 6;
+    const bulletspeed = 7;
+    const keys = {};
+
+    document.addEventListener("keydown", e => keys[e.key] = true);
+    document.addEventListener("keyup", e => keys[e.key] = false);
+
+    function movePlayers() {
+      if (keys["w"] && player1.y > 0) player1.y -= speed;
+      if (keys["s"] && player1.y < canvas.height - player1.h) player1.y += speed;
+      if (keys["a"] && player1.x > 0) player1.x -= speed;
+      if (keys["d"] && player1.x < canvas.width - player1.w) player1.x += speed;
+      if (keys["f"]) shoot(player1, 1);
+
+      if (keys["ArrowUp"] && player2.y > 0) player2.y -= speed;
+      if (keys["ArrowDown"] && player2.y < canvas.height - player2.h) player2.y += speed;
+      if (keys["ArrowLeft"] && player2.x > 0) player2.x -= speed;
+      if (keys["ArrowRight"] && player2.x < canvas.width - player2.w) player2.x += speed;
+      if (keys["Enter"]) shoot(player2, -1);
+    }
+
+    function shoot(player, direction) {
+      if (!player.lastShot || Date.now() - player.lastShot > 500) {
+        player.bullets.push({ x: player.x + player.w / 2, y: player.y + player.h / 2, dir: direction });
+        player.lastShot = Date.now();
+      }
+    }
+
+    function moveBullets(player, enemy) {
+      for (let i = 0; i < player.bullets.length; i++) {
+        const b = player.bullets[i];
+        b.x += b.dir * bulletspeed;
+
+        if (b.x < enemy.x + enemy.w && b.x > enemy.x &&
+            b.y < enemy.y + enemy.h && b.y > enemy.y) {
+          player.score++;
+          updateScore();
+          player.bullets.splice(i, 1);
+          i--;
+          resetEnemy(enemy);
+          continue;
+        }
+
+        if (b.x < 0 || b.x > canvas.width) {
+          player.bullets.splice(i, 1);
+          i--;
+        }
+      }
+    }
+
+    function resetEnemy(enemy) {
+      enemy.x = enemy === player1 ? 50 : 710;
+      enemy.y = 300;
+    }
+
+    function updateScore() {
+      document.getElementById("score").innerText =
+        `Blue: ${player1.score} | Red: ${player2.score}`;
+    }
+
+    function drawPlayer(p, img) {
+      ctx.drawImage(img, p.x, p.y, p.w, p.h);
+      ctx.fillStyle = "yellow";
+      for (let b of p.bullets) {
+        ctx.fillRect(b.x, b.y, 10, 5);
+      }
+    }
+
+    function gameLoop() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      movePlayers();
+      moveBullets(player1, player2);
+      moveBullets(player2, player1);
+      drawPlayer(player1, img1);
+      drawPlayer(player2, img2);
+      requestAnimationFrame(gameLoop);
+    }
+
+    gameLoop();
+  </script>
+</body>
+</html>
